@@ -110,7 +110,7 @@ def create_plot3(data):
     
     fig = px.line(data, x='Year', y='Value_Numeric',
                   title='National Index of Price Received',
-                  labels={'Value_Numeric': 'Index Value (2011 = 100)', 'Year': 'Year'},
+                  labels={'Value_Numeric': 'Price Received Index (Base Year 2011 = 100)', 'Year': 'Year'},
                   markers=True)
     
     fig.update_traces(line_color='green')
@@ -236,6 +236,8 @@ def main():
     # Full-width combined plot option
     st.subheader("📊 Combined View (Bonus Feature)")
     if st.checkbox("Show all three plots in one combined chart"):
+        st.info("💡 **Scaling Note**: Land prices, crop prices, and index values use different scales. Each data type is plotted on separate y-axes for better visualization.")
+        
         # Create subplot with secondary y-axes
         fig_combined = make_subplots(
             rows=1, cols=1,
@@ -243,27 +245,15 @@ def main():
             subplot_titles=["Combined Agricultural Data Analysis"]
         )
         
-        # Add cropland data (primary y-axis)
-        if selected_states and plot1_data is not None and not plot1_data.empty:
-            for state in selected_states:
-                state_data = plot1_data[plot1_data['State'] == state]
-                if not state_data.empty:
-                    fig_combined.add_trace(
-                        go.Scatter(x=state_data['Year'], y=state_data['Value_Numeric'],
-                                 mode='lines+markers', name=f"{state} Land Price",
-                                 line=dict(dash='solid')),
-                        secondary_y=False
-                    )
-        
-        # Add crop prices (primary y-axis) 
+        # Add crop prices (primary y-axis) - smaller scale, more visible
         if selected_crops and plot2_data is not None and not plot2_data.empty:
             for crop in selected_crops:
                 crop_data = plot2_data[plot2_data['Commodity'] == crop]
                 if not crop_data.empty:
                     fig_combined.add_trace(
                         go.Scatter(x=crop_data['Year'], y=crop_data['Value_Numeric'],
-                                 mode='lines+markers', name=f"{crop} Price",
-                                 line=dict(dash='dot')),
+                                 mode='lines+markers', name=f"{crop} Price ($/bu)",
+                                 line=dict(dash='dot', width=2)),
                         secondary_y=False
                     )
         
@@ -276,13 +266,38 @@ def main():
                 secondary_y=True
             )
         
-        # Update layout
+        # Update layout with better axis labels
         fig_combined.update_xaxes(title_text="Year")
-        fig_combined.update_yaxes(title_text="Price (Dollars)", secondary_y=False)
-        fig_combined.update_yaxes(title_text="Index Value (2011 = 100)", secondary_y=True)
-        fig_combined.update_layout(height=600, title="Combined Agricultural Data Analysis")
+        fig_combined.update_yaxes(title_text="Crop Prices (Dollars per Bushel)", secondary_y=False)
+        fig_combined.update_yaxes(title_text="Price Received Index (Base Year 2011 = 100)", secondary_y=True)
+        fig_combined.update_layout(height=600, title="Combined Crop Prices and Price Index Analysis")
         
         st.plotly_chart(fig_combined, use_container_width=True)
+        
+        # Separate combined plot for land prices (due to scale difference)
+        st.subheader("📊 Land Prices (Separate Scale)")
+        st.info("🏞️ **Land prices are shown separately due to their much larger scale ($1,000s vs $1s-$100s)**")
+        
+        if selected_states and plot1_data is not None and not plot1_data.empty:
+            fig_land = go.Figure()
+            
+            for state in selected_states:
+                state_data = plot1_data[plot1_data['State'] == state]
+                if not state_data.empty:
+                    fig_land.add_trace(
+                        go.Scatter(x=state_data['Year'], y=state_data['Value_Numeric'],
+                                 mode='lines+markers', name=f"{state} Land Price",
+                                 line=dict(width=2))
+                    )
+            
+            fig_land.update_layout(
+                title="Cropland Prices by State",
+                xaxis_title="Year",
+                yaxis_title="Price (Dollars per Acre)",
+                height=400
+            )
+            
+            st.plotly_chart(fig_land, use_container_width=True)
     
     # Data summary
     st.subheader("📈 Data Summary")
