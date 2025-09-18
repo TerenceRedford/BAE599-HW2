@@ -108,16 +108,45 @@ def create_plot3(data):
     if data is None or data.empty:
         return None
     
-    fig = px.line(data, x='Year', y='Value_Numeric',
-                  title='National Index of Price Received',
-                  labels={'Value_Numeric': 'Price Received Index (Base Year 2011 = 100)', 'Year': 'Year'},
-                  markers=True)
+    # Calculate percentage change from base year (2011 = 100)
+    data_copy = data.copy()
+    data_copy['Percent_Change'] = data_copy['Value_Numeric'] - 100
     
-    fig.update_traces(line_color='green')
+    fig = px.line(data_copy, x='Year', y='Value_Numeric',
+                  title='National Price Level Trends (Food Commodities)',
+                  labels={'Value_Numeric': 'Price Level Relative to 2011 (2011 = 100%)', 'Year': 'Year'},
+                  markers=True,
+                  hover_data={'Percent_Change': ':.1f'})
+    
+    # Add horizontal reference line at 100 (2011 baseline)
+    fig.add_hline(y=100, line_dash="dash", line_color="red", 
+                  annotation_text="2011 Baseline (100%)", annotation_position="bottom right")
+    
+    # Customize hover template
+    fig.update_traces(
+        line_color='green',
+        hovertemplate='<b>Year:</b> %{x}<br>' +
+                      '<b>Price Level:</b> %{y:.1f}<br>' +
+                      '<b>Change from 2011:</b> %{customdata[0]:+.1f}%<extra></extra>',
+        customdata=data_copy[['Percent_Change']]
+    )
+    
     fig.update_layout(
         title_font_size=16,
         xaxis_title_font_size=12,
-        yaxis_title_font_size=12
+        yaxis_title_font_size=12,
+        annotations=[
+            dict(
+                x=0.02, y=0.98,
+                xref="paper", yref="paper",
+                text="💡 Values above 100 = prices higher than 2011<br>Values below 100 = prices lower than 2011",
+                showarrow=False,
+                font=dict(size=10),
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="gray",
+                borderwidth=1
+            )
+        ]
     )
     
     return fig
@@ -269,7 +298,7 @@ def main():
         # Update layout with better axis labels
         fig_combined.update_xaxes(title_text="Year")
         fig_combined.update_yaxes(title_text="Crop Prices (Dollars per Bushel)", secondary_y=False)
-        fig_combined.update_yaxes(title_text="Price Received Index (Base Year 2011 = 100)", secondary_y=True)
+        fig_combined.update_yaxes(title_text="Price Level Relative to 2011 (2011 = 100%)", secondary_y=True)
         fig_combined.update_layout(height=600, title="Combined Crop Prices and Price Index Analysis")
         
         st.plotly_chart(fig_combined, use_container_width=True)
